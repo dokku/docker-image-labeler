@@ -22,7 +22,7 @@ func removeImageLabels(img *local.Image, labels []string) bool {
 	for _, label := range labels {
 		existingValue, err := img.Label(label)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error fetching label %s (%s)", label, err.Error())
+			fmt.Fprintf(os.Stderr, "Error fetching label %s (%s)\n", label, err.Error())
 			os.Exit(1)
 		}
 
@@ -32,7 +32,7 @@ func removeImageLabels(img *local.Image, labels []string) bool {
 
 		modified = true
 		if err := img.RemoveLabel(label); err != nil {
-			fmt.Fprintf(os.Stderr, "Error removing label %s (%s)", label, err.Error())
+			fmt.Fprintf(os.Stderr, "Error removing label %s (%s)\n", label, err.Error())
 			os.Exit(1)
 		}
 	}
@@ -49,35 +49,35 @@ func main() {
 	imageName := args.Arg(0)
 
 	if *versionFlag {
-		fmt.Fprintf(os.Stdout, "docker-image-labeler %s", Version)
+		fmt.Fprintf(os.Stdout, "docker-image-labeler %s\n", Version)
 		os.Exit(0)
 	}
 
 	if imageName == "" {
-		fmt.Fprintf(os.Stderr, "No image specified")
+		fmt.Fprintf(os.Stderr, "No image specified\n")
 		os.Exit(1)
 	}
 
 	if len(*labels) == 0 && len(*removeLabels) == 0 {
-		fmt.Fprintf(os.Stderr, "No labels specified")
+		fmt.Fprintf(os.Stderr, "No labels specified\n")
 		os.Exit(1)
 	}
 
 	dockerClient, err := dockercli.NewClientWithOpts(dockercli.FromEnv, dockercli.WithVersion(APIVERSION))
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to create docker client (%s)", err.Error())
+		fmt.Fprintf(os.Stderr, "Failed to create docker client (%s)\n", err.Error())
 		os.Exit(1)
 	}
 
 	img, err := local.NewImage(imageName, dockerClient, local.FromBaseImage(imageName))
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to create docker client (%s)", err.Error())
+		fmt.Fprintf(os.Stderr, "Failed to create docker client (%s)\n", err.Error())
 		os.Exit(1)
 	}
 
 	originalImageID, err := img.Identifier()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to fetch image id (%s)", err.Error())
+		fmt.Fprintf(os.Stderr, "Failed to fetch image id (%s)\n", err.Error())
 		os.Exit(1)
 	}
 
@@ -90,7 +90,7 @@ func main() {
 
 		existingValue, err := img.Label(key)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error fetching label %s (%s)", key, err.Error())
+			fmt.Fprintf(os.Stderr, "Error fetching label %s (%s)\n", key, err.Error())
 			os.Exit(1)
 		}
 
@@ -100,7 +100,7 @@ func main() {
 
 		modified = true
 		if err := img.SetLabel(key, newValue); err != nil {
-			fmt.Fprintf(os.Stderr, "Error setting label %s=%s (%s)", key, newValue, err.Error())
+			fmt.Fprintf(os.Stderr, "Error setting label %s=%s (%s)\n", key, newValue, err.Error())
 			os.Exit(1)
 		}
 	}
@@ -110,13 +110,13 @@ func main() {
 	}
 
 	if err := img.Save(); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to save image (%s)", err.Error())
+		fmt.Fprintf(os.Stderr, "Failed to save image (%s)\n", err.Error())
 		os.Exit(1)
 	}
 
 	newImageID, err := img.Identifier()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to fetch image id (%s)", err.Error())
+		fmt.Fprintf(os.Stderr, "Failed to fetch image id (%s)\n", err.Error())
 		os.Exit(1)
 	}
 
@@ -130,7 +130,7 @@ func main() {
 	}
 
 	if _, err := dockerClient.ImageRemove(context.Background(), originalImageID.String(), options); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to delete old image (%s)", err.Error())
+		fmt.Fprintf(os.Stderr, "Failed to delete old image (%s)\n", err.Error())
 		os.Exit(1)
 	}
 }
