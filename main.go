@@ -1,0 +1,127 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"strings"
+
+	"github.com/buildpacks/imgutil/local"
+	"github.com/docker/docker/api/types"
+	dockercli "github.com/docker/docker/client"
+	flag "github.com/spf13/pflag"
+)
+
+const APIVERSION = "1.25"
+
+func removeImageLabels(img *local.Image, labels []string) bool {
+	modified := false
+	for _, label := range labels {
+		existingValue, err := img.Label(label)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error fetching label %s (%s)", label, err.Error())
+			os.Exit(1)
+		}
+
+		if existingValue == "" {
+			continue
+		}
+
+		modified = true
+		if err := img.RemoveLabel(label); err != nil {
+			fmt.Fprintf(os.Stderr, "Error removing label %s (%s)", label, err.Error())
+			os.Exit(1)
+		}
+	}
+
+	return modified
+}
+
+func main() {
+	args := flag.NewFlagSet("", flag.ExitOnError)
+	var labels *[]string = args.StringSlice("label", []string{}, "set of labels to add")
+	var removeLabels *[]string = args.StringSlice("remove-label", []string{}, "set of labels to remove")
+	args.Parse(os.Args[1:])
+	imageName := args.Arg(0)
+
+	if imageName == "" {
+		fmt.Fprintf(os.Stderr, "No image specified")
+		os.Exit(1)
+	}
+
+	if len(*labels) == 0 && len(*removeLabels) == 0 {
+		fmt.Fprintf(os.Stderr, "No labels specified")
+		os.Exit(1)
+	}
+
+	dockerClient, err := dockercli.NewClientWithOpts(dockercli.FromEnv, dockercli.WithVersion(APIVERSION))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to create docker client (%s)", err.Error())
+		os.Exit(1)
+	}
+
+	img, err := local.NewImage(imageName, dockerClient, local.FromBaseImage(imageName))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to create docker client (%s)", err.Error())
+		os.Exit(1)
+	}
+
+	originalImageID, err := img.Identifier()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to fetch image id (%s)", err.Error())
+		os.Exit(1)
+	}
+
+	modified := removeImageLabels(img, *removeLabels)
+
+	for _, label := range *labels {
+		parts := strings.SplitN(label, "=", 2)
+		key := parts[0]
+		newValue := parts[1]
+
+		existingValue, err := img.Label(key)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error fetching label %s (%s)", key, err.Error())
+			os.Exit(1)
+		}
+
+		if existingValue == newValue {
+			continue
+		}
+
+		modified = true
+		if err := img.SetLabel(key, newValue); err != nil {
+			fmt.Fprintf(os.Stderr, "Error setting label %s=%s (%s)", key, newValue, err.Error())
+			os.Exit(1)
+		}
+	}
+
+	if !modified {
+		return
+	}
+
+	if err := img.Save(); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to save image (%s)", err.Error())
+		os.Exit(1)
+	}
+
+	newImageID, err := img.Identifier()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to fetch image id (%s)", err.Error())
+		os.Exit(1)
+	}
+
+	if newImageID == originalImageID {
+		os.Exit(1)
+	}
+
+	options := types.ImageRemoveOptions{
+		Force:         true,
+		PruneChildren: false,
+	}
+
+	if _, err := dockerClient.ImageRemove(context.Background(), originalImageID.String(), options); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to delete old image (%s)", err.Error())
+		os.Exit(1)
+	}
+}
