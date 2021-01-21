@@ -14,6 +14,9 @@ import (
 
 const APIVERSION = "1.25"
 
+// Version contains the docker-image-labeler version
+var Version string
+
 func removeImageLabels(img *local.Image, labels []string) bool {
 	modified := false
 	for _, label := range labels {
@@ -41,8 +44,14 @@ func main() {
 	args := flag.NewFlagSet("", flag.ExitOnError)
 	var labels *[]string = args.StringSlice("label", []string{}, "set of labels to add")
 	var removeLabels *[]string = args.StringSlice("remove-label", []string{}, "set of labels to remove")
+	var versionFlag *bool = args.BoolP("version", "v", false, "show the version")
 	args.Parse(os.Args[1:])
 	imageName := args.Arg(0)
+
+	if *versionFlag {
+		fmt.Fprintf(os.Stdout, "docker-image-labeler %s", Version)
+		os.Exit(0)
+	}
 
 	if imageName == "" {
 		fmt.Fprintf(os.Stderr, "No image specified")
