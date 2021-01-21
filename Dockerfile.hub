@@ -1,0 +1,3 @@
+FROM scratch
+COPY ./build/linux/docker-image-labeler /docker-image-labeler
+ENTRYPOINT ["/docker-image-labeler"]
