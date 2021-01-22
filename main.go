@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
-	"github.com/buildpacks/imgutil"
 	"github.com/buildpacks/imgutil/local"
 	"github.com/docker/docker/api/types"
 	dockercli "github.com/docker/docker/client"
@@ -111,7 +109,6 @@ func main() {
 		return
 	}
 
-	imgutil.NormalizedDateTime = time.Now()
 	if err := img.Save(); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to save image (%s)\n", err.Error())
 		os.Exit(1)
