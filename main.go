@@ -86,7 +86,10 @@ func main() {
 	for _, label := range *labels {
 		parts := strings.SplitN(label, "=", 2)
 		key := parts[0]
-		newValue := parts[1]
+		newValue := ""
+		if len(parts) == 2 {
+			newValue = parts[1]
+		}
 
 		existingValue, err := img.Label(key)
 		if err != nil {
