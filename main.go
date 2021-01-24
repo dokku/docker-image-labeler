@@ -41,7 +41,7 @@ func removeImageLabels(img *local.Image, labels []string) bool {
 }
 
 func main() {
-	args := flag.NewFlagSet("", flag.ExitOnError)
+	args := flag.NewFlagSet("docker-image-labeler", flag.ExitOnError)
 	var labels *[]string = args.StringSlice("label", []string{}, "set of labels to add")
 	var removeLabels *[]string = args.StringSlice("remove-label", []string{}, "set of labels to remove")
 	var versionFlag *bool = args.BoolP("version", "v", false, "show the version")
@@ -86,7 +86,10 @@ func main() {
 	for _, label := range *labels {
 		parts := strings.SplitN(label, "=", 2)
 		key := parts[0]
-		newValue := parts[1]
+		newValue := ""
+		if len(parts) == 2 {
+			newValue = parts[1]
+		}
 
 		existingValue, err := img.Label(key)
 		if err != nil {
@@ -124,8 +127,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), originalImageID.String())
+	if len(inspect.RepoTags) > 0 {
+		return
+	}
+
 	options := types.ImageRemoveOptions{
-		Force:         true,
+		Force:         false,
 		PruneChildren: false,
 	}
 
