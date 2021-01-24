@@ -10,7 +10,6 @@ Adds and removes labels from docker images
 
 This package allows for adding and removing image labels without rebuilding images.
 
-
 ## Installation
 
 Debian and RPM packages are available via [packagecloud](https://packagecloud.io/dokku/dokku)
