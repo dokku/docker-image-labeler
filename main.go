@@ -127,8 +127,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), originalImageID.String())
+	if len(inspect.RepoTags) > 0 {
+		return
+	}
+
 	options := types.ImageRemoveOptions{
-		Force:         true,
+		Force:         false,
 		PruneChildren: false,
 	}
 
