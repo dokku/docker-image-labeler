@@ -41,7 +41,7 @@ func removeImageLabels(img *local.Image, labels []string) bool {
 }
 
 func main() {
-	args := flag.NewFlagSet("", flag.ExitOnError)
+	args := flag.NewFlagSet("docker-image-labeler", flag.ExitOnError)
 	var labels *[]string = args.StringSlice("label", []string{}, "set of labels to add")
 	var removeLabels *[]string = args.StringSlice("remove-label", []string{}, "set of labels to remove")
 	var versionFlag *bool = args.BoolP("version", "v", false, "show the version")
