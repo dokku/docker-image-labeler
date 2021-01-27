@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -81,9 +82,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), originalImageID.String())
+	originalRepoTags, err := json.Marshal(inspect.RepoTags)
+	repoTagsLabel := fmt.Sprintf("com.dokku.docker-image-labeler/original-tags=%s", string(originalRepoTags))
+	appendLabels := append(*labels, repoTagsLabel)
+
 	modified := removeImageLabels(img, *removeLabels)
 
-	for _, label := range *labels {
+	for _, label := range appendLabels {
 		parts := strings.SplitN(label, "=", 2)
 		key := parts[0]
 		newValue := ""
@@ -125,11 +131,6 @@ func main() {
 
 	if newImageID == originalImageID {
 		os.Exit(1)
-	}
-
-	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), originalImageID.String())
-	if len(inspect.RepoTags) > 0 {
-		return
 	}
 
 	options := types.ImageRemoveOptions{
