@@ -85,11 +85,13 @@ func main() {
 	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), originalImageID.String())
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to inspect the source image (%s)\n", err.Error())
+		os.Exit(1)
 	}
 
 	originalRepoTags, err := json.Marshal(inspect.RepoTags)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to encode image's original tags as JSON (%s)\n", err.Error())
+		os.Exit(1)
 	}
 
 	appendLabels := append(*labels, fmt.Sprintf("com.dokku.docker-image-labeler/original-tags=%s", string(originalRepoTags)))
