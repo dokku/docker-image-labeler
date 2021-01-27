@@ -86,6 +86,9 @@ func main() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to inspect the source image (%s)\n", err.Error())
 	}
+	if len(inspect.RepoTags) > 0 {
+		return
+	}
 
 	originalRepoTags, err := json.Marshal(inspect.RepoTags)
 	if err != nil {
