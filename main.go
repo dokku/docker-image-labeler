@@ -88,13 +88,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	originalRepoTags, err := json.Marshal(inspect.RepoTags)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to encode image's original tags as JSON (%s)\n", err.Error())
-		os.Exit(1)
+	appendLabels := *labels
+	originalTagsLabel := "com.dokku.docker-image-labeler/original-tags"
+	if _, ok := inspect.Config.Labels[originalTagsLabel]; !ok {
+		originalRepoTags, err := json.Marshal(inspect.RepoTags)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to encode image's original tags as JSON (%s)\n", err.Error())
+			os.Exit(1)
+		}
+
+		appendLabels = append(appendLabels, fmt.Sprintf("com.dokku.docker-image-labeler/original-tags=%s", string(originalRepoTags)))
 	}
 
-	appendLabels := append(*labels, fmt.Sprintf("com.dokku.docker-image-labeler/original-tags=%s", string(originalRepoTags)))
 	modified := removeImageLabels(img, *removeLabels)
 
 	for _, label := range appendLabels {
