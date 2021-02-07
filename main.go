@@ -54,6 +54,11 @@ func main() {
 		os.Exit(0)
 	}
 
+	if imageName == "version" {
+		fmt.Fprintf(os.Stdout, "docker-image-labeler %s\n", Version)
+		os.Exit(0)
+	}
+
 	if imageName == "" {
 		fmt.Fprintf(os.Stderr, "No image specified\n")
 		os.Exit(1)
