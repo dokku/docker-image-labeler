@@ -161,3 +161,5 @@ validate:
 	ls -lah build/deb build/rpm validation
 	sha1sum build/deb/$(NAME)_$(VERSION)_amd64.deb
 	sha1sum build/rpm/$(NAME)-$(VERSION)-1.x86_64.rpm
+
+prebuild: build-docker-image
