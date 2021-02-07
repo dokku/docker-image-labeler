@@ -55,6 +55,7 @@ $(targets): %-in-docker: .env.docker
 		--rm \
 		--volume /var/lib/docker:/var/lib/docker \
 		--volume /var/run/docker.sock:/var/run/docker.sock:ro \
+		--volume /usr/bin/docker:/usr/local/bin/docker \
 		--volume ${PWD}:/src/github.com/$(MAINTAINER)/$(REPOSITORY) \
 		--workdir /src/github.com/$(MAINTAINER)/$(REPOSITORY) \
 		$(IMAGE_NAME):build make -e $(@:-in-docker=)
