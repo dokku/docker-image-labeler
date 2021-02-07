@@ -12,6 +12,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	dockercli "github.com/docker/docker/client"
+	"github.com/docker/docker/errdefs"
 	flag "github.com/spf13/pflag"
 )
 
@@ -177,6 +178,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	repoTags := inspect.RepoTags
+
 	appendLabels, err := parseNewLabels(*labels)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to parse new labels: %s\n", err.Error())
@@ -217,10 +220,15 @@ func main() {
 	}
 
 	if newImageID == originalImageID {
+		fmt.Fprintf(os.Stderr, "New and old image have the same identifier (%s)\n", newImageID)
 		os.Exit(1)
 	}
 
-	if len(inspect.RepoTags) > 0 {
+	if len(repoTags) > 2 {
+		return
+	}
+
+	if len(repoTags) == 1 && repoTags[0] != imageName {
 		return
 	}
 
@@ -230,6 +238,10 @@ func main() {
 	}
 
 	if _, err := dockerClient.ImageRemove(context.Background(), originalImageID.String(), options); err != nil {
+		if _, ok := err.(errdefs.ErrConflict); ok {
+			fmt.Fprintf(os.Stderr, "Warning: Failed to delete old image (%s)\n", err.Error())
+			return
+		}
 		fmt.Fprintf(os.Stderr, "Failed to delete old image (%s)\n", err.Error())
 		os.Exit(1)
 	}

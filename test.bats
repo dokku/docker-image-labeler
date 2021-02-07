@@ -5,9 +5,10 @@ export BIN_FILE="build/$SYSTEM_NAME/docker-image-labeler"
 
 setup() {
   make prebuild $BIN_FILE
-  docker rmi hello-world:latest 2>/dev/null || true
-  docker rmi alpine:latest 2>/dev/null || true
-  docker rmi alpine/git:v2.30.0 2>/dev/null || true
+  docker image rm hello-world:latest 2>/dev/null || true
+  docker image rm alpine:latest 2>/dev/null || true
+  docker image rm alpine/git:v2.30.0 2>/dev/null || true
+  docker container rm hello-test 2>/dev/null || true
 }
 
 teardown() {
@@ -251,6 +252,65 @@ teardown() {
   [[ "$output" != "$originalImageID" ]]
 
   run /bin/bash -c "docker image inspect $originalImageID"
+  echo "status: $status"
+  echo "output: $output"
+  [[ "$status" -eq 0 ]]
+}
+
+@test "does not delete images with dependent images" {
+  run docker image pull hello-world:latest
+  echo "status: $status"
+  echo "output: $output"
+  [[ "$status" -eq 0 ]]
+
+  run /bin/bash -c "docker image inspect hello-world:latest --format '{{ .ID }}' | cut -d ':' -f2"
+  echo "status: $status"
+  echo "output: $output"
+  [[ "$status" -eq 0 ]]
+
+  originalImageID="$output"
+
+  run docker container create --name hello-test hello-world:latest
+  echo "status: $status"
+  echo "output: $output"
+  [[ "$status" -eq 0 ]]
+
+  run docker container commit --change "ENV key=value" hello-test hello-world:test
+  echo "status: $status"
+  echo "output: $output"
+  [[ "$status" -eq 0 ]]
+
+  run docker container rm hello-test
+  echo "status: $status"
+  echo "output: $output"
+  [[ "$status" -eq 0 ]]
+
+  run docker container create --name hello-test hello-world:test
+  echo "status: $status"
+  echo "output: $output"
+  [[ "$status" -eq 0 ]]
+
+  run docker container commit --change "ENV key2=value2" hello-test hello-world:test
+  echo "status: $status"
+  echo "output: $output"
+  [[ "$status" -eq 0 ]]
+
+  run $BIN_FILE hello-world:latest --label key=value
+  echo "status: $status"
+  echo "output: $output"
+  [[ "$status" -eq 0 ]]
+
+  run /bin/bash -c "docker image inspect $originalImageID"
+  echo "status: $status"
+  echo "output: $output"
+  [[ "$status" -eq 0 ]]
+
+  run /bin/bash -c "docker container rm hello-test"
+  echo "status: $status"
+  echo "output: $output"
+  [[ "$status" -eq 0 ]]
+
+  run /bin/bash -c "docker image rm hello-world:test $originalImageID"
   echo "status: $status"
   echo "output: $output"
   [[ "$status" -eq 0 ]]
