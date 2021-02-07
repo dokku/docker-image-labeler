@@ -5,11 +5,11 @@ MAINTAINER_NAME = Jose Diaz-Gonzalez
 REPOSITORY = docker-image-labeler
 HARDWARE = $(shell uname -m)
 SYSTEM_NAME  = $(shell uname -s | tr '[:upper:]' '[:lower:]')
-BASE_VERSION ?= 0.2.0
+BASE_VERSION ?= 0.2.1
 IMAGE_NAME ?= $(MAINTAINER)/$(REPOSITORY)
 PACKAGECLOUD_REPOSITORY ?= dokku/dokku-betafish
 
-ifeq ($(CIRCLE_BRANCH),release)
+ifeq ($(CI_BRANCH),release)
 	VERSION ?= $(BASE_VERSION)
 	DOCKER_IMAGE_VERSION = $(VERSION)
 else
@@ -18,7 +18,7 @@ else
 endif
 
 version:
-	@echo "$(CIRCLE_BRANCH)"
+	@echo "$(CI_BRANCH)"
 	@echo "$(VERSION)"
 
 define PACKAGE_DESCRIPTION
@@ -33,14 +33,14 @@ targets = $(addsuffix -in-docker, $(LIST))
 .env.docker:
 	@rm -f .env.docker
 	@touch .env.docker
-	@echo "CIRCLE_BRANCH=$(CIRCLE_BRANCH)" >> .env.docker
+	@echo "CI_BRANCH=$(CI_BRANCH)" >> .env.docker
 	@echo "GITHUB_ACCESS_TOKEN=$(GITHUB_ACCESS_TOKEN)" >> .env.docker
 	@echo "IMAGE_NAME=$(IMAGE_NAME)" >> .env.docker
 	@echo "PACKAGECLOUD_REPOSITORY=$(PACKAGECLOUD_REPOSITORY)" >> .env.docker
 	@echo "PACKAGECLOUD_TOKEN=$(PACKAGECLOUD_TOKEN)" >> .env.docker
 	@echo "VERSION=$(VERSION)" >> .env.docker
 
-build:
+build: prebuild
 	@$(MAKE) build/darwin/$(NAME)
 	@$(MAKE) build/linux/$(NAME)
 	@$(MAKE) build/deb/$(NAME)_$(VERSION)_amd64.deb
@@ -55,6 +55,7 @@ $(targets): %-in-docker: .env.docker
 		--rm \
 		--volume /var/lib/docker:/var/lib/docker \
 		--volume /var/run/docker.sock:/var/run/docker.sock:ro \
+		--volume /usr/bin/docker:/usr/local/bin/docker \
 		--volume ${PWD}:/src/github.com/$(MAINTAINER)/$(REPOSITORY) \
 		--workdir /src/github.com/$(MAINTAINER)/$(REPOSITORY) \
 		$(IMAGE_NAME):build make -e $(@:-in-docker=)
@@ -115,13 +116,12 @@ build/rpm/$(NAME)-$(VERSION)-1.x86_64.rpm: build/linux/$(NAME)
 clean:
 	rm -rf build release validation
 
-circleci:
+ci-report:
 	docker version
 	rm -f ~/.gitconfig
 
 docker-image:
 	docker build --rm -q -f Dockerfile.hub -t $(IMAGE_NAME):$(DOCKER_IMAGE_VERSION) .
-	docker tag $(IMAGE_NAME):$(DOCKER_IMAGE_VERSION) $(IMAGE_NAME):hub
 
 bin/gh-release:
 	mkdir -p bin
@@ -161,3 +161,7 @@ validate:
 	ls -lah build/deb build/rpm validation
 	sha1sum build/deb/$(NAME)_$(VERSION)_amd64.deb
 	sha1sum build/rpm/$(NAME)-$(VERSION)-1.x86_64.rpm
+	bats test.bats
+
+prebuild:
+	true

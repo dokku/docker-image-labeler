@@ -8,7 +8,7 @@ Adds and removes labels from docker images
 
 ## Background
 
-This package allows for adding and removing image labels without rebuilding images.
+This package allows for adding and removing image labels without rebuilding images. Layer history creation time may change.
 
 ## Installation
 
