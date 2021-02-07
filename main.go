@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -81,9 +82,27 @@ func main() {
 		os.Exit(1)
 	}
 
+	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), originalImageID.String())
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to inspect the source image (%s)\n", err.Error())
+		os.Exit(1)
+	}
+
+	appendLabels := *labels
+	originalTagsLabel := "com.dokku.docker-image-labeler/original-tags"
+	if _, ok := inspect.Config.Labels[originalTagsLabel]; !ok {
+		originalRepoTags, err := json.Marshal(inspect.RepoTags)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to encode image's original tags as JSON (%s)\n", err.Error())
+			os.Exit(1)
+		}
+
+		appendLabels = append(appendLabels, fmt.Sprintf("com.dokku.docker-image-labeler/original-tags=%s", string(originalRepoTags)))
+	}
+
 	modified := removeImageLabels(img, *removeLabels)
 
-	for _, label := range *labels {
+	for _, label := range appendLabels {
 		parts := strings.SplitN(label, "=", 2)
 		key := parts[0]
 		newValue := ""
@@ -127,7 +146,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), originalImageID.String())
 	if len(inspect.RepoTags) > 0 {
 		return
 	}
