@@ -224,7 +224,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if len(repoTags) > 2 {
+	if len(repoTags) > 1 {
 		return
 	}
 
