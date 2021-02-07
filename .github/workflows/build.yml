@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - '*'
+  push:
+    branches:
+      - 'master'
+      - 'release'
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-16.04
+    strategy:
+      fail-fast: true
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: make version
+      run: |
+        export CI_BRANCH=${GITHUB_REF#refs/heads/}
+        make version
+    - run: make ci-report
+    - run: make build-docker-image
+    - run: make build-in-docker
+      env:
+        GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - run: make validate-in-docker
+      env:
+        GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: upload packages
+      uses: actions/upload-artifact@v2
+      with:
+        name: build
+        path: build/**/*
+    - name: make release-in-docker
+      run: |
+        if [[ "${GITHUB_REF#refs/heads/}" == "release" ]]; then
+          make release-in-docker release-packagecloud-in-docker
+        fi
+      env:
+        GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
