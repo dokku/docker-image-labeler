@@ -5,7 +5,7 @@ MAINTAINER_NAME = Jose Diaz-Gonzalez
 REPOSITORY = docker-image-labeler
 HARDWARE = $(shell uname -m)
 SYSTEM_NAME  = $(shell uname -s | tr '[:upper:]' '[:lower:]')
-BASE_VERSION ?= 0.2.1
+BASE_VERSION ?= 0.2.2
 IMAGE_NAME ?= $(MAINTAINER)/$(REPOSITORY)
 PACKAGECLOUD_REPOSITORY ?= dokku/dokku-betafish
 
