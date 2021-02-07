@@ -235,7 +235,7 @@ teardown() {
   [[ "$status" -eq 0 ]]
 
   originalImageID="$output"
-  run docker container run hello-world:latest
+  run docker container run --name hello-test hello-world:latest
   echo "status: $status"
   echo "output: $output"
   [[ "$status" -eq 0 ]]
@@ -252,6 +252,11 @@ teardown() {
   [[ "$output" != "$originalImageID" ]]
 
   run /bin/bash -c "docker image inspect $originalImageID"
+  echo "status: $status"
+  echo "output: $output"
+  [[ "$status" -eq 0 ]]
+
+  run docker container rm hello-test
   echo "status: $status"
   echo "output: $output"
   [[ "$status" -eq 0 ]]
@@ -300,17 +305,17 @@ teardown() {
   echo "output: $output"
   [[ "$status" -eq 0 ]]
 
-  run /bin/bash -c "docker image inspect $originalImageID"
+  run docker image inspect "$originalImageID"  --format '{{ .ID }}'
   echo "status: $status"
   echo "output: $output"
   [[ "$status" -eq 0 ]]
 
-  run /bin/bash -c "docker container rm hello-test"
+  run docker container rm hello-test
   echo "status: $status"
   echo "output: $output"
   [[ "$status" -eq 0 ]]
 
-  run /bin/bash -c "docker image rm hello-world:test $originalImageID"
+  run docker image rm hello-world:test "$originalImageID"
   echo "status: $status"
   echo "output: $output"
   [[ "$status" -eq 0 ]]
