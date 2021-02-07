@@ -225,3 +225,33 @@ teardown() {
   [[ "$status" -eq 0 ]]
   [[ "$output" != "$last_tag_time" ]]
 }
+
+@test "does not delete images with running containers" {
+  docker image pull hello-world:latest
+  run /bin/bash -c "docker image inspect hello-world:latest --format '{{ .ID }}' | cut -d ':' -f2"
+  echo "status: $status"
+  echo "output: $output"
+  [[ "$status" -eq 0 ]]
+
+  originalImageID="$output"
+  run docker container run hello-world:latest
+  echo "status: $status"
+  echo "output: $output"
+  [[ "$status" -eq 0 ]]
+
+  run $BIN_FILE hello-world:latest --label key=value
+  echo "status: $status"
+  echo "output: $output"
+  [[ "$status" -eq 0 ]]
+
+  run /bin/bash -c "docker image inspect hello-world:latest --format '{{ .ID }}' | cut -d ':' -f2"
+  echo "status: $status"
+  echo "output: $output"
+  [[ "$status" -eq 0 ]]
+  [[ "$output" != "$originalImageID" ]]
+
+  run /bin/bash -c "docker image inspect $originalImageID"
+  echo "status: $status"
+  echo "output: $output"
+  [[ "$status" -eq 0 ]]
+}
