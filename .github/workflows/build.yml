@@ -17,10 +17,10 @@ jobs:
       fail-fast: true
     env:
       GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PACKAGECLOUD_TOKEN: ${{ secrets.PACKAGECLOUD_TOKEN }}
 
     steps:
     - uses: actions/checkout@v2
-
     - name: make version
       run: |
         export CI_BRANCH=${GITHUB_REF#refs/heads/}
