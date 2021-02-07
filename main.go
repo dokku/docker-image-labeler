@@ -3,12 +3,14 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
 
 	"github.com/buildpacks/imgutil/local"
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/client"
 	dockercli "github.com/docker/docker/client"
 	flag "github.com/spf13/pflag"
 )
@@ -18,13 +20,12 @@ const APIVERSION = "1.25"
 // Version contains the docker-image-labeler version
 var Version string
 
-func removeImageLabels(img *local.Image, labels []string) bool {
+func removeImageLabels(img *local.Image, labels []string) (bool, error) {
 	modified := false
 	for _, label := range labels {
 		existingValue, err := img.Label(label)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error fetching label %s (%s)\n", label, err.Error())
-			os.Exit(1)
+			return modified, fmt.Errorf("Error fetching label %s (%s)\n", label, err.Error())
 		}
 
 		if existingValue == "" {
@@ -33,12 +34,88 @@ func removeImageLabels(img *local.Image, labels []string) bool {
 
 		modified = true
 		if err := img.RemoveLabel(label); err != nil {
-			fmt.Fprintf(os.Stderr, "Error removing label %s (%s)\n", label, err.Error())
-			os.Exit(1)
+			return modified, fmt.Errorf("Error removing label %s (%s)\n", label, err.Error())
 		}
 	}
 
-	return modified
+	return modified, nil
+}
+
+func addImageLabels(img *local.Image, labels map[string]string) (bool, error) {
+	modified := false
+	for key, value := range labels {
+		existingValue, err := img.Label(key)
+		if err != nil {
+			return modified, fmt.Errorf("Error fetching label %s (%s)\n", key, err.Error())
+		}
+
+		if existingValue == value {
+			continue
+		}
+
+		modified = true
+		if err := img.SetLabel(key, value); err != nil {
+			return modified, fmt.Errorf("Error setting label %s=%s (%s)\n", key, value, err.Error())
+		}
+	}
+
+	return modified, nil
+}
+
+func parseNewLabels(labels []string) (map[string]string, error) {
+	m := map[string]string{}
+	for _, label := range labels {
+		parts := strings.SplitN(label, "=", 2)
+		key := parts[0]
+		value := ""
+		if len(parts) == 2 {
+			value = parts[1]
+		}
+
+		if len(key) == 0 {
+			return m, errors.New("Invalid label specified")
+		}
+
+		m[key] = value
+	}
+
+	return m, nil
+}
+
+func fetchTags(inspect types.ImageInspect, label string) (string, error) {
+	if len(inspect.RepoTags) == 0 {
+		return "", nil
+	}
+
+	tags := inspect.RepoTags
+	s, ok := inspect.Config.Labels[label]
+	if ok {
+		var existingTags []string
+		if err := json.Unmarshal([]byte(s), &existingTags); err != nil {
+			return "", err
+		}
+
+		tags = append(tags, existingTags...)
+	}
+
+	tags = unique(tags)
+	originalRepoTags, err := json.Marshal(tags)
+	if err != nil {
+		return "", fmt.Errorf("Failed to encode image's original tags as JSON (%s)\n", err.Error())
+	}
+	return string(originalRepoTags), nil
+}
+
+func unique(intSlice []string) []string {
+	keys := make(map[string]bool)
+	list := []string{}
+	for _, entry := range intSlice {
+		if _, value := keys[entry]; !value {
+			keys[entry] = true
+			list = append(list, entry)
+		}
+	}
+	return list
 }
 
 func main() {
@@ -75,6 +152,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	if _, _, err = dockerClient.ImageInspectWithRaw(context.Background(), imageName); err != nil {
+		if client.IsErrNotFound(err) {
+			fmt.Fprintf(os.Stderr, "Failed to fetch image id (%s)\n", err.Error())
+			os.Exit(1)
+		}
+	}
+
 	img, err := local.NewImage(imageName, dockerClient, local.FromBaseImage(imageName))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to create docker client (%s)\n", err.Error())
@@ -93,46 +177,31 @@ func main() {
 		os.Exit(1)
 	}
 
-	appendLabels := *labels
-	originalTagsLabel := "com.dokku.docker-image-labeler/original-tags"
-	if _, ok := inspect.Config.Labels[originalTagsLabel]; !ok {
-		originalRepoTags, err := json.Marshal(inspect.RepoTags)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to encode image's original tags as JSON (%s)\n", err.Error())
-			os.Exit(1)
-		}
-
-		appendLabels = append(appendLabels, fmt.Sprintf("com.dokku.docker-image-labeler/original-tags=%s", string(originalRepoTags)))
+	appendLabels, err := parseNewLabels(*labels)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to parse new labels: %s\n", err.Error())
+		os.Exit(1)
 	}
 
-	modified := removeImageLabels(img, *removeLabels)
-
-	for _, label := range appendLabels {
-		parts := strings.SplitN(label, "=", 2)
-		key := parts[0]
-		newValue := ""
-		if len(parts) == 2 {
-			newValue = parts[1]
-		}
-
-		existingValue, err := img.Label(key)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error fetching label %s (%s)\n", key, err.Error())
-			os.Exit(1)
-		}
-
-		if existingValue == newValue {
-			continue
-		}
-
-		modified = true
-		if err := img.SetLabel(key, newValue); err != nil {
-			fmt.Fprintf(os.Stderr, "Error setting label %s=%s (%s)\n", key, newValue, err.Error())
-			os.Exit(1)
-		}
+	alternateTagsLabel := "com.dokku.docker-image-labeler/alternate-tags"
+	alternateTagValue, err := fetchTags(inspect, alternateTagsLabel)
+	if len(alternateTagValue) > 0 {
+		appendLabels[alternateTagsLabel] = alternateTagValue
 	}
 
-	if !modified {
+	removed, err := removeImageLabels(img, *removeLabels)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed removing labels: %s\n", err.Error())
+		os.Exit(1)
+	}
+
+	added, err := addImageLabels(img, appendLabels)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed removing labels: %s\n", err.Error())
+		os.Exit(1)
+	}
+
+	if !removed && !added {
 		return
 	}
 
