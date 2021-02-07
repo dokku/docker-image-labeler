@@ -37,5 +37,6 @@ jobs:
     - name: make release-in-docker
       run: |
         if [[ "${GITHUB_REF#refs/heads/}" == "release" ]]; then
+          export PACKAGECLOUD_REPOSITORY=dokku/dokku
           make release-in-docker release-packagecloud-in-docker
         fi
