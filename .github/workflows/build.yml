@@ -1,3 +1,4 @@
+---
 name: CI
 
 on:
@@ -12,7 +13,7 @@ on:
 jobs:
   build:
     name: build
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-18.04
     strategy:
       fail-fast: true
     env:
@@ -23,7 +24,6 @@ jobs:
     - uses: actions/checkout@v2
     - name: make version
       run: |
-        export CI_BRANCH=${GITHUB_REF#refs/heads/}
         make version .env.docker
     - run: make ci-report
     - run: make build-docker-image
@@ -37,6 +37,8 @@ jobs:
     - name: make release-in-docker
       run: |
         if [[ "${GITHUB_REF#refs/heads/}" == "release" ]]; then
+          export CI_BRANCH=${GITHUB_REF#refs/heads/}
           export PACKAGECLOUD_REPOSITORY=dokku/dokku
-          make release-in-docker release-packagecloud-in-docker
+          rm .env.docker
+          make .env.docker release-in-docker release-packagecloud-in-docker
         fi
