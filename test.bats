@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 export SYSTEM_NAME="$(uname -s | tr '[:upper:]' '[:lower:]')"
-export BIN_FILE="build/$SYSTEM_NAME/docker-image-labeler"
+export BIN_FILE="build/$SYSTEM_NAME/docker-image-labeler-amd64"
 
 setup() {
   make prebuild $BIN_FILE
