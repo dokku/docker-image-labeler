@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/buildpacks/imgutil v0.0.0-20211005132955-28bd3dbdbfdf
 	github.com/containerd/containerd v1.5.7 // indirect
-	github.com/docker/docker v20.10.9+incompatible
+	github.com/docker/docker v20.10.10+incompatible
 	github.com/google/go-containerregistry v0.6.0 // indirect
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6 // indirect
 	github.com/spf13/pflag v1.0.5
