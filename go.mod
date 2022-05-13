@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/buildpacks/imgutil v0.0.0-20220504154612-41b113050e2b
-	github.com/docker/docker v20.10.15+incompatible
+	github.com/docker/docker v20.10.16+incompatible
 	github.com/spf13/pflag v1.0.5
 )
 
