@@ -37,13 +37,11 @@ teardown() {
   echo "status: $status"
   echo "output: $output"
   [[ "$status" -eq 1 ]]
-  [[ "$output" == "No image specified" ]]
 
   run $BIN_FILE relabel hello-world
   echo "status: $status"
   echo "output: $output"
   [[ "$status" -eq 1 ]]
-  [[ "$output" == "No labels specified" ]]
 
   run $BIN_FILE relabel hello-world --label
   echo "status: $status"
