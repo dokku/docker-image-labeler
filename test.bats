@@ -46,12 +46,12 @@ teardown() {
   run $BIN_FILE relabel hello-world --label
   echo "status: $status"
   echo "output: $output"
-  [[ "$status" -eq 2 ]]
+  [[ "$status" -eq 1 ]]
 
   run $BIN_FILE relabel hello-world --remove-label
   echo "status: $status"
   echo "output: $output"
-  [[ "$status" -eq 2 ]]
+  [[ "$status" -eq 1 ]]
 
   run $BIN_FILE relabel hello-world --label key=value
   echo "status: $status"
