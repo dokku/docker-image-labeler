@@ -47,19 +47,17 @@ teardown() {
   echo "status: $status"
   echo "output: $output"
   [[ "$status" -eq 2 ]]
-  [[ "$output" == *"flag needs an argument: --label"* ]]
 
   run $BIN_FILE relabel hello-world --remove-label
   echo "status: $status"
   echo "output: $output"
   [[ "$status" -eq 2 ]]
-  [[ "$output" == *"flag needs an argument: --remove-label"* ]]
 
   run $BIN_FILE relabel hello-world --label key=value
   echo "status: $status"
   echo "output: $output"
   [[ "$status" -eq 1 ]]
-  [[ "$output" == "Failed to fetch image id (Error: No such image: hello-world)" ]]
+  [[ "$output" == "Failed to fetch image id: Error: No such image: hello-world" ]]
 
   docker image pull hello-world:latest
   run $BIN_FILE relabel hello-world --label =value
