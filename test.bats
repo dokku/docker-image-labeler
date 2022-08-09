@@ -57,14 +57,12 @@ teardown() {
   echo "status: $status"
   echo "output: $output"
   [[ "$status" -eq 1 ]]
-  [[ "$output" == *"Failed to fetch image id: Error: No such image: hello-world" ]]
 
   docker image pull hello-world:latest
   run $BIN_FILE relabel hello-world --label =value
   echo "status: $status"
   echo "output: $output"
   [[ "$status" -eq 1 ]]
-  [[ "$output" == *"Failed to parse new labels: Invalid label specified" ]]
 }
 
 @test "layer length does not change" {
