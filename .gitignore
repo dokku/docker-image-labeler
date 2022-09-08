@@ -22,3 +22,5 @@ validation/*
 
 # .env files
 .env*
+
+docker-image-labeler
