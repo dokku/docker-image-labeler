@@ -164,7 +164,6 @@ teardown() {
   [[ "$output" == "$last_tag_time" ]]
 }
 
-
 @test "retag with new labels" {
   docker image pull hello-world:latest
   run $BIN_FILE relabel hello-world:latest --label key=value
@@ -299,7 +298,7 @@ teardown() {
   echo "output: $output"
   [[ "$status" -eq 0 ]]
 
-  run docker image inspect "$originalImageID"  --format '{{ .ID }}'
+  run docker image inspect "$originalImageID" --format '{{ .ID }}'
   echo "status: $status"
   echo "output: $output"
   [[ "$status" -eq 0 ]]
