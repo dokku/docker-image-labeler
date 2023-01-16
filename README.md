@@ -12,7 +12,7 @@ This package allows for adding and removing image labels without rebuilding imag
 
 ## Installation
 
-Debian and RPM packages are available via [packagecloud](https://packagecloud.io/dokku/dokku)
+Debian packages are available via [packagecloud](https://packagecloud.io/dokku/dokku)
 
 For a prebuilt binaries, see the [github releases page](https://github.com/dokku/docker-image-labeler/releases).
 
