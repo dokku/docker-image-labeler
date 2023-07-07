@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/buildpacks/imgutil v0.0.0-20220805205524-56137f75e24d
-	github.com/docker/docker v24.0.2+incompatible
+	github.com/docker/docker v24.0.3+incompatible
 	github.com/josegonzalez/cli-skeleton v0.8.0
 	github.com/mitchellh/cli v1.1.5
 	github.com/posener/complete v1.2.3
