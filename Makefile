@@ -5,7 +5,7 @@ MAINTAINER_NAME = Jose Diaz-Gonzalez
 REPOSITORY = docker-image-labeler
 HARDWARE = $(shell uname -m)
 SYSTEM_NAME  = $(shell uname -s | tr '[:upper:]' '[:lower:]')
-BASE_VERSION ?= 0.5.0
+BASE_VERSION ?= 0.6.0
 IMAGE_NAME ?= $(MAINTAINER)/$(REPOSITORY)
 PACKAGECLOUD_REPOSITORY ?= dokku/dokku-betafish
 
@@ -41,17 +41,17 @@ targets = $(addsuffix -in-docker, $(LIST))
 	@echo "VERSION=$(VERSION)" >> .env.docker
 
 build: prebuild
-	@$(MAKE) build/darwin/$(NAME)
+	@$(MAKE) build/darwin/$(NAME)-amd64
+	@$(MAKE) build/darwin/$(NAME)-arm64
 	@$(MAKE) build/linux/$(NAME)-amd64
 	@$(MAKE) build/linux/$(NAME)-arm64
 	@$(MAKE) build/linux/$(NAME)-armhf
 	@$(MAKE) build/deb/$(NAME)_$(VERSION)_amd64.deb
 	@$(MAKE) build/deb/$(NAME)_$(VERSION)_arm64.deb
 	@$(MAKE) build/deb/$(NAME)_$(VERSION)_armhf.deb
-	@$(MAKE) build/rpm/$(NAME)-$(VERSION)-1.x86_64.rpm
 
 build-docker-image:
-	docker build --rm -q -f Dockerfile.build -t $(IMAGE_NAME):build .
+	docker build --rm -q -f Dockerfile -t $(IMAGE_NAME):build .
 
 $(targets): %-in-docker: .env.docker
 	docker run \
@@ -64,15 +64,21 @@ $(targets): %-in-docker: .env.docker
 		--workdir /src/github.com/$(MAINTAINER)/$(REPOSITORY) \
 		$(IMAGE_NAME):build make -e $(@:-in-docker=)
 
-build/darwin/$(NAME):
+build/darwin/$(NAME)-amd64:
 	mkdir -p build/darwin
-	CGO_ENABLED=0 GOOS=darwin go build -a -asmflags=-trimpath=/src -gcflags=-trimpath=/src \
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -a -asmflags=-trimpath=/src -gcflags=-trimpath=/src \
 										-ldflags "-s -w -X main.Version=$(VERSION)" \
-										-o build/darwin/$(NAME)
+										-o build/darwin/$(NAME)-amd64
+
+build/darwin/$(NAME)-arm64:
+	mkdir -p build/darwin
+	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -a -asmflags=-trimpath=/src -gcflags=-trimpath=/src \
+										-ldflags "-s -w -X main.Version=$(VERSION)" \
+										-o build/darwin/$(NAME)-arm64
 
 build/linux/$(NAME)-amd64:
 	mkdir -p build/linux
-	CGO_ENABLED=0 GOOS=linux go build -a -asmflags=-trimpath=/src -gcflags=-trimpath=/src \
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -asmflags=-trimpath=/src -gcflags=-trimpath=/src \
 										-ldflags "-s -w -X main.Version=$(VERSION)" \
 										-o build/linux/$(NAME)-amd64
 
@@ -148,27 +154,6 @@ build/deb/$(NAME)_$(VERSION)_armhf.deb: build/linux/$(NAME)-armhf
 		build/linux/$(NAME)-armhf=/usr/bin/$(NAME) \
 		LICENSE=/usr/share/doc/$(NAME)/copyright
 
-build/rpm/$(NAME)-$(VERSION)-1.x86_64.rpm: build/linux/$(NAME)-amd64
-	export SOURCE_DATE_EPOCH=$(shell git log -1 --format=%ct) \
-		&& mkdir -p build/rpm \
-		&& fpm \
-		--architecture x86_64 \
-		--category utils \
-		--description "$$PACKAGE_DESCRIPTION" \
-		--input-type dir \
-		--license 'MIT License' \
-		--maintainer "$(MAINTAINER_NAME) <$(EMAIL)>" \
-		--name $(NAME) \
-		--output-type rpm \
-		--package build/rpm/$(NAME)-$(VERSION)-1.x86_64.rpm \
-		--rpm-os linux \
-		--url "https://github.com/$(MAINTAINER)/$(REPOSITORY)" \
-		--vendor "" \
-		--version $(VERSION) \
-		--verbose \
-		build/linux/$(NAME)-amd64=/usr/bin/$(NAME) \
-		LICENSE=/usr/share/doc/$(NAME)/copyright
-
 clean:
 	rm -rf build release validation
 
@@ -195,34 +180,32 @@ release: build bin/gh-release bin/gh-release-body
 	tar -zcf release/$(NAME)_$(VERSION)_linux_amd64.tgz -C build/linux $(NAME)-amd64
 	tar -zcf release/$(NAME)_$(VERSION)_linux_arm64.tgz -C build/linux $(NAME)-arm64
 	tar -zcf release/$(NAME)_$(VERSION)_linux_armhf.tgz -C build/linux $(NAME)-armhf
-	tar -zcf release/$(NAME)_$(VERSION)_darwin_$(HARDWARE).tgz -C build/darwin $(NAME)
+	tar -zcf release/$(NAME)_$(VERSION)_darwin_amd64.tgz -C build/darwin $(NAME)-amd64
+	tar -zcf release/$(NAME)_$(VERSION)_darwin_arm64.tgz -C build/darwin $(NAME)-arm64
 	cp build/deb/$(NAME)_$(VERSION)_amd64.deb release/$(NAME)_$(VERSION)_amd64.deb
 	cp build/deb/$(NAME)_$(VERSION)_arm64.deb release/$(NAME)_$(VERSION)_arm64.deb
 	cp build/deb/$(NAME)_$(VERSION)_armhf.deb release/$(NAME)_$(VERSION)_armhf.deb
-	cp build/rpm/$(NAME)-$(VERSION)-1.x86_64.rpm release/$(NAME)-$(VERSION)-1.x86_64.rpm
 	bin/gh-release create $(MAINTAINER)/$(REPOSITORY) $(VERSION) $(shell git rev-parse --abbrev-ref HEAD)
 	bin/gh-release-body $(MAINTAINER)/$(REPOSITORY) v$(VERSION)
 
 release-packagecloud:
 	@$(MAKE) release-packagecloud-deb
-	@$(MAKE) release-packagecloud-rpm
 
 release-packagecloud-deb: build/deb/$(NAME)_$(VERSION)_amd64.deb build/deb/$(NAME)_$(VERSION)_arm64.deb build/deb/$(NAME)_$(VERSION)_armhf.deb
 	package_cloud push $(PACKAGECLOUD_REPOSITORY)/ubuntu/bionic  build/deb/$(NAME)_$(VERSION)_amd64.deb
 	package_cloud push $(PACKAGECLOUD_REPOSITORY)/ubuntu/focal   build/deb/$(NAME)_$(VERSION)_amd64.deb
 	package_cloud push $(PACKAGECLOUD_REPOSITORY)/ubuntu/jammy   build/deb/$(NAME)_$(VERSION)_amd64.deb
-	package_cloud push $(PACKAGECLOUD_REPOSITORY)/debian/stretch build/deb/$(NAME)_$(VERSION)_amd64.deb
 	package_cloud push $(PACKAGECLOUD_REPOSITORY)/debian/buster  build/deb/$(NAME)_$(VERSION)_amd64.deb
 	package_cloud push $(PACKAGECLOUD_REPOSITORY)/debian/bullseye build/deb/$(NAME)_$(VERSION)_amd64.deb
+	package_cloud push $(PACKAGECLOUD_REPOSITORY)/debian/bookworm build/deb/$(NAME)_$(VERSION)_amd64.deb
 	package_cloud push $(PACKAGECLOUD_REPOSITORY)/ubuntu/focal    build/deb/$(NAME)_$(VERSION)_arm64.deb
 	package_cloud push $(PACKAGECLOUD_REPOSITORY)/ubuntu/jammy    build/deb/$(NAME)_$(VERSION)_arm64.deb
+	package_cloud push $(PACKAGECLOUD_REPOSITORY)/debian/bullseye build/deb/$(NAME)_$(VERSION)_arm64.deb
+	package_cloud push $(PACKAGECLOUD_REPOSITORY)/debian/bookworm build/deb/$(NAME)_$(VERSION)_arm64.deb
 	package_cloud push $(PACKAGECLOUD_REPOSITORY)/ubuntu/focal    build/deb/$(NAME)_$(VERSION)_armhf.deb
 	package_cloud push $(PACKAGECLOUD_REPOSITORY)/ubuntu/jammy    build/deb/$(NAME)_$(VERSION)_armhf.deb
 	package_cloud push $(PACKAGECLOUD_REPOSITORY)/raspbian/buster build/deb/$(NAME)_$(VERSION)_armhf.deb
 	package_cloud push $(PACKAGECLOUD_REPOSITORY)/raspbian/bullseye build/deb/$(NAME)_$(VERSION)_armhf.deb
-
-release-packagecloud-rpm: build/rpm/$(NAME)-$(VERSION)-1.x86_64.rpm
-	package_cloud push $(PACKAGECLOUD_REPOSITORY)/el/7           build/rpm/$(NAME)-$(VERSION)-1.x86_64.rpm
 
 validate:
 	mkdir -p validation
@@ -238,13 +221,12 @@ validate:
 	cd validation && ar -x ../build/deb/$(NAME)_$(VERSION)_amd64.deb
 	cd validation && ar -x ../build/deb/$(NAME)_$(VERSION)_arm64.deb
 	cd validation && ar -x ../build/deb/$(NAME)_$(VERSION)_armhf.deb
-	cd validation && rpm2cpio ../build/rpm/$(NAME)-$(VERSION)-1.x86_64.rpm > $(NAME)-$(VERSION)-1.x86_64.cpio
-	ls -lah build/deb build/rpm validation
+	ls -lah build/deb validation
 	sha1sum build/deb/$(NAME)_$(VERSION)_amd64.deb
 	sha1sum build/deb/$(NAME)_$(VERSION)_arm64.deb
 	sha1sum build/deb/$(NAME)_$(VERSION)_armhf.deb
-	sha1sum build/rpm/$(NAME)-$(VERSION)-1.x86_64.rpm
 	bats test.bats
 
 prebuild:
-	true
+	git config --global --add safe.directory $(shell pwd)
+	git status

@@ -12,7 +12,7 @@ This package allows for adding and removing image labels without rebuilding imag
 
 ## Installation
 
-Debian and RPM packages are available via [packagecloud](https://packagecloud.io/dokku/dokku)
+Debian packages are available via [packagecloud](https://packagecloud.io/dokku/dokku)
 
 For a prebuilt binaries, see the [github releases page](https://github.com/dokku/docker-image-labeler/releases).
 
@@ -28,4 +28,17 @@ In addition, builds can be performed in an isolated Docker container:
 
 ```shell
 make build-docker-image build-in-docker
+```
+
+## Usage
+
+```shell
+# pull an image
+docker image pull mysql:8
+
+# add a label
+./docker-image-labeler relabel --label=mysql.version=8 mysql:8
+
+# remove the label
+./docker-image-labeler relabel --remove-label=mysql.version mysql:8
 ```

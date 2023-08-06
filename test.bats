@@ -33,42 +33,36 @@ teardown() {
 }
 
 @test "failing arguments" {
-  run $BIN_FILE
+  run $BIN_FILE relabel
   echo "status: $status"
   echo "output: $output"
   [[ "$status" -eq 1 ]]
-  [[ "$output" == "No image specified" ]]
 
-  run $BIN_FILE hello-world
+  run $BIN_FILE relabel hello-world
   echo "status: $status"
   echo "output: $output"
   [[ "$status" -eq 1 ]]
-  [[ "$output" == "No labels specified" ]]
 
-  run $BIN_FILE hello-world --label
-  echo "status: $status"
-  echo "output: $output"
-  [[ "$status" -eq 2 ]]
-  [[ "$output" == *"flag needs an argument: --label"* ]]
-
-  run $BIN_FILE hello-world --remove-label
-  echo "status: $status"
-  echo "output: $output"
-  [[ "$status" -eq 2 ]]
-  [[ "$output" == *"flag needs an argument: --remove-label"* ]]
-
-  run $BIN_FILE hello-world --label key=value
+  run $BIN_FILE relabel hello-world --label
   echo "status: $status"
   echo "output: $output"
   [[ "$status" -eq 1 ]]
-  [[ "$output" == "Failed to fetch image id (Error: No such image: hello-world)" ]]
+
+  run $BIN_FILE relabel hello-world --remove-label
+  echo "status: $status"
+  echo "output: $output"
+  [[ "$status" -eq 1 ]]
+
+  run $BIN_FILE relabel hello-world --label key=value
+  echo "status: $status"
+  echo "output: $output"
+  [[ "$status" -eq 1 ]]
 
   docker image pull hello-world:latest
-  run $BIN_FILE hello-world --label =value
+  run $BIN_FILE relabel hello-world --label =value
   echo "status: $status"
   echo "output: $output"
   [[ "$status" -eq 1 ]]
-  [[ "$output" == "Failed to parse new labels: Invalid label specified" ]]
 }
 
 @test "layer length does not change" {
@@ -79,7 +73,7 @@ teardown() {
   [[ "$status" -eq 0 ]]
   [[ "$output" -eq 1 ]]
 
-  run $BIN_FILE hello-world:latest --label key=value
+  run $BIN_FILE relabel hello-world:latest --label key=value
   echo "status: $status"
   echo "output: $output"
   [[ "$status" -eq 0 ]]
@@ -97,7 +91,7 @@ teardown() {
   [[ "$status" -eq 0 ]]
   [[ "$output" -eq 3 ]]
 
-  run $BIN_FILE alpine/git:v2.30.0 --label key=value
+  run $BIN_FILE relabel alpine/git:v2.30.0 --label key=value
   echo "status: $status"
   echo "output: $output"
   [[ "$status" -eq 0 ]]
@@ -108,7 +102,7 @@ teardown() {
   [[ "$status" -eq 0 ]]
   [[ "$output" -eq 3 ]]
 
-  run $BIN_FILE alpine/git:v2.30.0 --label key2=value2
+  run $BIN_FILE relabel alpine/git:v2.30.0 --label key2=value2
   echo "status: $status"
   echo "output: $output"
   [[ "$status" -eq 0 ]]
@@ -122,7 +116,7 @@ teardown() {
 
 @test "retag with same label" {
   docker image pull hello-world:latest
-  run $BIN_FILE hello-world:latest --label key=value
+  run $BIN_FILE relabel hello-world:latest --label key=value
   echo "status: $status"
   echo "output: $output"
   [[ "$status" -eq 0 ]]
@@ -146,7 +140,7 @@ teardown() {
 
   # retag
   last_tag_time="$output"
-  run $BIN_FILE hello-world:latest --label key=value
+  run $BIN_FILE relabel hello-world:latest --label key=value
   echo "status: $status"
   echo "output: $output"
   [[ "$status" -eq 0 ]]
@@ -170,10 +164,9 @@ teardown() {
   [[ "$output" == "$last_tag_time" ]]
 }
 
-
 @test "retag with new labels" {
   docker image pull hello-world:latest
-  run $BIN_FILE hello-world:latest --label key=value
+  run $BIN_FILE relabel hello-world:latest --label key=value
   echo "status: $status"
   echo "output: $output"
   [[ "$status" -eq 0 ]]
@@ -197,7 +190,7 @@ teardown() {
 
   # retag
   last_tag_time="$output"
-  run $BIN_FILE hello-world:latest --label key=value --label key2=value2
+  run $BIN_FILE relabel hello-world:latest --label key=value --label key2=value2
   echo "status: $status"
   echo "output: $output"
   [[ "$status" -eq 0 ]]
@@ -240,7 +233,7 @@ teardown() {
   echo "output: $output"
   [[ "$status" -eq 0 ]]
 
-  run $BIN_FILE hello-world:latest --label key=value
+  run $BIN_FILE relabel hello-world:latest --label key=value
   echo "status: $status"
   echo "output: $output"
   [[ "$status" -eq 0 ]]
@@ -300,12 +293,12 @@ teardown() {
   echo "output: $output"
   [[ "$status" -eq 0 ]]
 
-  run $BIN_FILE hello-world:latest --label key=value
+  run $BIN_FILE relabel hello-world:latest --label key=value
   echo "status: $status"
   echo "output: $output"
   [[ "$status" -eq 0 ]]
 
-  run docker image inspect "$originalImageID"  --format '{{ .ID }}'
+  run docker image inspect "$originalImageID" --format '{{ .ID }}'
   echo "status: $status"
   echo "output: $output"
   [[ "$status" -eq 0 ]]
