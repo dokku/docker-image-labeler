@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/buildpacks/imgutil v0.0.0-20220805205524-56137f75e24d
 	github.com/docker/docker v25.0.2+incompatible
-	github.com/josegonzalez/cli-skeleton v0.14.0
+	github.com/josegonzalez/cli-skeleton v0.15.0
 	github.com/mitchellh/cli v1.1.5
 	github.com/posener/complete v1.2.3
 	github.com/spf13/pflag v1.0.5
@@ -45,7 +45,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.0.3-0.20220114050600-8b9d41f48198 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/rs/zerolog v1.31.0 // indirect
+	github.com/rs/zerolog v1.32.0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.47.0 // indirect
