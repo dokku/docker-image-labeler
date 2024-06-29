@@ -10,6 +10,7 @@ import (
 
 	"github.com/buildpacks/imgutil/local"
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
 	dockercli "github.com/docker/docker/client"
 	"github.com/docker/docker/errdefs"
@@ -192,7 +193,7 @@ func (c *RelabelCommand) Run(args []string) int {
 		return 0
 	}
 
-	options := types.ImageRemoveOptions{
+	options := image.RemoveOptions{
 		Force:         false,
 		PruneChildren: false,
 	}
