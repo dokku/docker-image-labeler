@@ -6,7 +6,7 @@ toolchain go1.22.2
 
 require (
 	github.com/buildpacks/imgutil v0.0.0-20240412164957-7ea6c92023f4
-	github.com/docker/docker v27.0.2+incompatible
+	github.com/docker/docker v27.0.3+incompatible
 	github.com/josegonzalez/cli-skeleton v0.16.1
 	github.com/mitchellh/cli v1.1.5
 	github.com/posener/complete v1.2.3
@@ -46,7 +46,6 @@ require (
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
-	github.com/moby/moby v27.0.2+incompatible // indirect
 	github.com/moby/term v0.5.0 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
