@@ -19,8 +19,6 @@ import (
 	flag "github.com/spf13/pflag"
 )
 
-const APIVERSION = "1.25"
-
 type RelabelCommand struct {
 	command.Meta
 
@@ -108,7 +106,10 @@ func (c *RelabelCommand) Run(args []string) int {
 		return 1
 	}
 
-	dockerClient, err := dockercli.NewClientWithOpts(dockercli.FromEnv, dockercli.WithVersion(APIVERSION))
+	dockerClient, err := dockercli.NewClientWithOpts(
+		dockercli.FromEnv,
+		dockercli.WithAPIVersionNegotiation(),
+	)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to create docker client: %s", err.Error()))
 		return 1
