@@ -9,12 +9,10 @@ import (
 	"strings"
 
 	"github.com/buildpacks/imgutil/local"
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/image"
-	"github.com/docker/docker/client"
-	dockercli "github.com/docker/docker/client"
-	"github.com/docker/docker/errdefs"
+	cerrdefs "github.com/containerd/errdefs"
 	"github.com/josegonzalez/cli-skeleton/command"
+	"github.com/moby/moby/api/types/image"
+	dockercli "github.com/moby/moby/client"
 	"github.com/posener/complete"
 	flag "github.com/spf13/pflag"
 )
@@ -115,8 +113,8 @@ func (c *RelabelCommand) Run(args []string) int {
 		return 1
 	}
 
-	if _, _, err = dockerClient.ImageInspectWithRaw(context.Background(), imageName); err != nil {
-		if client.IsErrNotFound(err) {
+	if _, err = dockerClient.ImageInspect(context.Background(), imageName); err != nil {
+		if cerrdefs.IsNotFound(err) {
 			c.Ui.Error(fmt.Sprintf("Failed to fetch image id: %s", err.Error()))
 			return 1
 		}
@@ -134,7 +132,7 @@ func (c *RelabelCommand) Run(args []string) int {
 		return 1
 	}
 
-	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), originalImageID.String())
+	inspect, err := dockerClient.ImageInspect(context.Background(), originalImageID.String())
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to inspect the source image: %s", err.Error()))
 		return 1
@@ -149,7 +147,7 @@ func (c *RelabelCommand) Run(args []string) int {
 	}
 
 	alternateTagsLabel := "com.dokku.docker-image-labeler/alternate-tags"
-	alternateTagValue, err := fetchTags(inspect, alternateTagsLabel)
+	alternateTagValue, err := fetchTags(inspect.InspectResponse, alternateTagsLabel)
 	if len(alternateTagValue) > 0 {
 		appendLabels[alternateTagsLabel] = alternateTagValue
 	}
@@ -194,13 +192,13 @@ func (c *RelabelCommand) Run(args []string) int {
 		return 0
 	}
 
-	options := image.RemoveOptions{
+	options := dockercli.ImageRemoveOptions{
 		Force:         false,
 		PruneChildren: false,
 	}
 
 	if _, err := dockerClient.ImageRemove(context.Background(), originalImageID.String(), options); err != nil {
-		if _, ok := err.(errdefs.ErrConflict); ok {
+		if cerrdefs.IsConflict(err) {
 			c.Ui.Error(fmt.Sprintf("Warning: Failed to delete old image: %s", err.Error()))
 			return 0
 		}
@@ -273,20 +271,21 @@ func parseNewLabels(labels []string) (map[string]string, error) {
 	return m, nil
 }
 
-func fetchTags(inspect types.ImageInspect, label string) (string, error) {
+func fetchTags(inspect image.InspectResponse, label string) (string, error) {
 	if len(inspect.RepoTags) == 0 {
 		return "", nil
 	}
 
 	tags := inspect.RepoTags
-	s, ok := inspect.Config.Labels[label]
-	if ok {
-		var existingTags []string
-		if err := json.Unmarshal([]byte(s), &existingTags); err != nil {
-			return "", err
-		}
+	if inspect.Config != nil {
+		if s, ok := inspect.Config.Labels[label]; ok {
+			var existingTags []string
+			if err := json.Unmarshal([]byte(s), &existingTags); err != nil {
+				return "", err
+			}
 
-		tags = append(tags, existingTags...)
+			tags = append(tags, existingTags...)
+		}
 	}
 
 	tags = unique(tags)
