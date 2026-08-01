@@ -175,7 +175,10 @@ release-packagecloud-deb: build/deb/$(NAME)_$(VERSION)_amd64.deb build/deb/$(NAM
 	package_cloud push $(PACKAGECLOUD_REPOSITORY)/debian/bookworm build/deb/$(NAME)_$(VERSION)_arm64.deb
 	package_cloud push $(PACKAGECLOUD_REPOSITORY)/debian/trixie   build/deb/$(NAME)_$(VERSION)_arm64.deb
 
-validate:
+unit-test:
+	go test ./...
+
+validate: unit-test
 	mkdir -p validation
 	lintian build/deb/$(NAME)_$(VERSION)_amd64.deb || true
 	lintian build/deb/$(NAME)_$(VERSION)_arm64.deb || true
